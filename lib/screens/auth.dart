@@ -10,6 +10,26 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  final _formKey =
+      GlobalKey<
+        FormState
+      >(); // for assigning an unique key to froms inorder to refer them when needed.
+
+  var _isLogin = true;
+  var _showPassword = false;
+
+  var _enteredEmail = '';
+  var _enteredPassword = '';
+
+  void _submit() {
+    final isValid = _formKey.currentState!.validate();
+    if (isValid) {
+      _formKey.currentState!.save();
+      print(_enteredEmail);
+      print(_enteredPassword);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,6 +57,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Form(
+                      key: _formKey,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -48,16 +69,73 @@ class _AuthScreenState extends State<AuthScreen> {
                             keyboardType: TextInputType.emailAddress,
                             autocorrect: false,
                             textCapitalization: TextCapitalization.none,
+                            validator: (value) {
+                              if (value == null ||
+                                  value.trim().isEmpty ||
+                                  !value.contains('@')) {
+                                return 'Please enter a valid message bruh';
+                              }
+
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredEmail = value!;
+                            },
                           ),
 
                           TextFormField(
                             // input for password
                             decoration: InputDecoration(
                               label: Text("Password"),
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showPassword = !_showPassword;
+                                  });
+                                },
+                                icon: Icon(
+                                  !_showPassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                              ),
                             ),
                             keyboardType: TextInputType.text,
-                            obscureText: true,
+                            obscureText: !_showPassword,
+                            validator: (value) {
+                              if (value == null || value.trim().length < 6) {
+                                return "Password must be atleast 6 characters long bruh";
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              _enteredPassword = value!;
+                            },
                           ),
+
+                          const SizedBox(height: 12),
+
+                          ElevatedButton(
+                            onPressed: _submit,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                            ),
+                            child: Text(
+                              _isLogin ? "Sign up" : "Create account",
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _isLogin = !_isLogin;
+                              });
+                            },
+                            child: _isLogin
+                                ? Text("Create an Account")
+                                : Text("Sign up"),
+                          ), // for sewicthing between singin and sign up
                         ],
                       ),
                     ),
