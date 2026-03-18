@@ -34,13 +34,25 @@ class _AuthScreenState extends State<AuthScreen> {
     // print(_enteredPassword);
     if (_isLogin) {
       // we can log users in
+      try {
+        final usercred = await _firebase.signInWithEmailAndPassword(
+          email: _enteredEmail,
+          password: _enteredPassword,
+        );
+        print(usercred);
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'Auth failed  womp womp')),
+        );
+      }
     } else {
       try {
         final usercred = await _firebase.createUserWithEmailAndPassword(
           email: _enteredEmail,
           password: _enteredPassword,
         );
-        print(usercred);
+        // print(usercred);
       } on FirebaseAuthException catch (e) {
         if (e.code == "email-already-in-use") {}
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -144,7 +156,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               ).colorScheme.primaryContainer,
                             ),
                             child: Text(
-                              _isLogin ? "Sign up" : "Create account",
+                              _isLogin ? "Sign in" : "Create account",
                             ),
                           ),
                           TextButton(
@@ -155,8 +167,8 @@ class _AuthScreenState extends State<AuthScreen> {
                             },
                             child: _isLogin
                                 ? Text("Create an Account")
-                                : Text("Sign up"),
-                          ), // for sewicthing between singin and sign up
+                                : Text("Sign in"),
+                          ), // for sewicthing between singin and Sign in
                         ],
                       ),
                     ),
