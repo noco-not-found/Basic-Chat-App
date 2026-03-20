@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:chat_app/widgets/user_image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -29,6 +30,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   File? _selectedImage;
 
+  var _isUploading = false;
+
   void _submit() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) {
@@ -45,10 +48,22 @@ class _AuthScreenState extends State<AuthScreen> {
     if (_isLogin) {
       // we can log users in
       try {
+        setState(() {
+          _isUploading = true;
+        });
         final usercred = await _firebase.signInWithEmailAndPassword(
           email: _enteredEmail,
           password: _enteredPassword,
         );
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_images')
+            .child('${usercred.user!.uid}.jpeg');
+
+        await storageRef.putFile(_selectedImage!);
+        final imageURL = storageRef.getDownloadURL();
+        print(imageURL);
+
         print(usercred);
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -58,10 +73,22 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } else {
       try {
+        setState(() {
+          _isUploading = true;
+        });
         final usercred = await _firebase.createUserWithEmailAndPassword(
           email: _enteredEmail,
           password: _enteredPassword,
         );
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('user_images')
+            .child('${usercred.user!.uid}.jpeg');
+
+        await storageRef.putFile(_selectedImage!);
+        final imageURL = storageRef.getDownloadURL();
+        print(imageURL);
+
         // print(usercred);
       } on FirebaseAuthException catch (e) {
         if (e.code == "email-already-in-use") {}
@@ -71,6 +98,9 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
     }
+    setState(() {
+      _isUploading = false;
+    });
   }
 
   @override
@@ -164,27 +194,31 @@ class _AuthScreenState extends State<AuthScreen> {
 
                           const SizedBox(height: 12),
 
-                          ElevatedButton(
-                            onPressed: _submit,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
+                          if (_isUploading) const CircularProgressIndicator(),
+
+                          if (!_isUploading)
+                            ElevatedButton(
+                              onPressed: _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                              ),
+                              child: Text(
+                                _isLogin ? "Sign in" : "Create account",
+                              ),
                             ),
-                            child: Text(
-                              _isLogin ? "Sign in" : "Create account",
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              setState(() {
-                                _isLogin = !_isLogin;
-                              });
-                            },
-                            child: _isLogin
-                                ? Text("Create an Account")
-                                : Text("Sign in"),
-                          ), // for sewicthing between singin and Sign in
+                          if (!_isUploading)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isLogin = !_isLogin;
+                                });
+                              },
+                              child: _isLogin
+                                  ? Text("Create an Account")
+                                  : Text("Sign in"),
+                            ), // for sewicthing between singin and Sign in
                         ],
                       ),
                     ),
