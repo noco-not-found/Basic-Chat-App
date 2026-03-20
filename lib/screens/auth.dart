@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:chat_app/widgets/user_image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 final _firebase = FirebaseAuth.instance;
@@ -27,6 +28,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   var _enteredEmail = '';
   var _enteredPassword = '';
+
+  var _eneteredUsername = '';
 
   File? _selectedImage;
 
@@ -55,16 +58,6 @@ class _AuthScreenState extends State<AuthScreen> {
           email: _enteredEmail,
           password: _enteredPassword,
         );
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('user_images')
-            .child('${usercred.user!.uid}.jpeg');
-
-        await storageRef.putFile(_selectedImage!);
-        final imageURL = storageRef.getDownloadURL();
-        print(imageURL);
-
-        print(usercred);
       } on FirebaseAuthException catch (e) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,10 +79,16 @@ class _AuthScreenState extends State<AuthScreen> {
             .child('${usercred.user!.uid}.jpeg');
 
         await storageRef.putFile(_selectedImage!);
-        final imageURL = storageRef.getDownloadURL();
-        print(imageURL);
+        final imageURL = await storageRef.getDownloadURL();
 
-        // print(usercred);
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(usercred.user!.uid)
+            .set({
+              'username': _eneteredUsername,
+              'email': _enteredEmail,
+              'image_url': imageURL,
+            });
       } on FirebaseAuthException catch (e) {
         if (e.code == "email-already-in-use") {}
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -98,6 +97,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
     }
+    if (!mounted) return;
     setState(() {
       _isUploading = false;
     });
@@ -161,6 +161,25 @@ class _AuthScreenState extends State<AuthScreen> {
                               _enteredEmail = value!;
                             },
                           ),
+
+                          if (!_isLogin)
+                            TextFormField(
+                              validator: (value) {
+                                if (value == null ||
+                                    value.isEmpty ||
+                                    value.trim().length < 4) {
+                                  return 'Please enter a valid username, atleast 4 characters';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                labelText: "Username",
+                              ),
+                              enableSuggestions: false,
+                              onSaved: (value) {
+                                _eneteredUsername = value!;
+                              },
+                            ),
 
                           TextFormField(
                             // input for password
